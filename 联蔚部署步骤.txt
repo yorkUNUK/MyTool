@@ -1,0 +1,81 @@
+装mysql和nginx可在随意目录下，我都在java下，后续删除包
+
+1.装jdk
+mkdir /usr/local/java
+cd /usr/local/java
+java目录下wget http://harbor.itdocker.cn:81/jdk8u212.tar.gz
+tar -zxvf jdk8u212.tar.gz
+vi /etc/profile
+
+set java environment
+JAVA_HOME=/usr/local/java/jdk1.8.0_212        
+JRE_HOME=/usr/local/java/jdk1.8.0_212/jre     
+CLASS_PATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib
+PATH=$JAVA_HOME/bin:$JRE_HOME/bin:$PATH
+export JAVA_HOME JRE_HOME CLASS_PATH PATH
+
+source /etc/profile
+
+java -version
+
+
+2.装mysql
+wget http://harbor.itdocker.cn:81/mysql-5.7.25-1.el7.x86_64.rpm-bundle.tar
+tar xf mysql-5.7.25-1.el7.x86_64.rpm-bundle.tar
+yum install ./*rpm
+systemctl start  mysqld.service
+systemctl status  mysqld.service
+grep "password" /var/log/mysqld.log           #查密码
+mysql -u root -p              #进入数据库
+mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'new password';  #改密码
+
+#建库
+create xxxxx;
+然后找相关人员要建表语句
+use xxxxx;
+source xxxxxxxx.sql;
+
+
+3.装nginx
+wget http://223.223.198.54:8880/bestsign-middleware-lianwei-1.0.3-RELEASE.jar
+yum install nginx
+（如果报没有可用包nginx，就
+rpm -Uvh http://nginx.org/packages/centos/7/noarch/RPMS/nginx-release-centos-7-0.el7.ngx.noarch.rpm
+yum install -y nginx
+）
+然后配置nginx.conf,在http里面加：
+upstream lianwei {
+  server 127.0.0.1:8080;
+  #server 192.168.0.118:8080;
+}
+
+    server {
+        listen       80;
+        server_name  wesign.bestsign.cn;
+
+        location / {
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_connect_timeout 300;
+                proxy_send_timeout 300;
+                proxy_read_timeout 300;
+                proxy_pass http://lianwei/;
+    }
+
+        error_page   500 502 503 504  /50x.html;
+        error_page   404 /404.html;
+        location = /40x.html {
+            root   html;
+        }
+    }
+
+
+4.装jar包
+mkdir /usr/local/bestSignMiddleWare
+把jar包和配置文件放进去
+
+
+最后  
+java -jar  /usr/local/bestSignMiddleWare/bestsign-middleware-lianwei-1.0.3-RELEASE.jar --spring.profiles.active=test & 
+启动看下
